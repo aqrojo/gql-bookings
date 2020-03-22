@@ -2,10 +2,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const graphqlHttp = require('express-graphql');
 const { buildSchema } = require('graphql');
+const mongoose = require('mongoose');
+
+const EventModel = require('./models/Event');
 
 const app = express();
-
-const events = [];
 
 app.use(bodyParser.json());
 
@@ -39,20 +40,39 @@ app.use('/graphql', graphqlHttp({
     mutation: rootMutation
    }
   `),
+
   rootValue: {
-    events: () => events,
-    createEvent: (args) =>
-      events.push({
-        _id: Date.now().toString(),
+    events: () => {
+      return EventModel
+        .find()
+        .then(result => {
+          console.log('result success', result);
+          return result
+        })
+        .catch(err => { throw err;});
+    },
+
+    createEvent: (args) => {
+      return new EventModel({
         title: args.eventInput.title,
         description: args.eventInput.description,
         price: +args.eventInput.price,
         date: args.eventInput.date,
-      }) && events[events.length - 1],
+      })
+        .save()
+        .then(result => ({
+          ...result._doc,
+          _id: result.id,
+        }))
+        .catch(err => {throw err;});
+    },
   },
   graphiql: true,
 }));
 
-// escribo otra cosa
+mongoose
+  .connect(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0-iivao.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`)
+  .then(() => app.listen(3000, () => console.log('start server')))
+  .catch(err => console.log('error trying to connect db', err));
 
-app.listen(3000, () => console.log('start server'));
+
