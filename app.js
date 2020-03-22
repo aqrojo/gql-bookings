@@ -35,4 +35,6 @@ app.use('/graphql', graphqlHttp({
   graphiql: true
 }));
 
+// escribo otra cosa
+
 app.listen(3000, () => console.log('start server'));
